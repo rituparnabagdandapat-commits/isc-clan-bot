@@ -1,0 +1,7 @@
+Replace YOUR_BOT_TOKEN_HERE with your token in Secrets
+
+1. Go to repo Settings -> Secrets -> Actions
+2. Add New Secret: BOT_TOKEN = your real token
+3. Code already uses os.getenv('BOT_TOKEN') - no need to edit py file
+
+DO NOT SHARE TOKEN - Never put it in code
