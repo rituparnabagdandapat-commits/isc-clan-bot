@@ -72,6 +72,10 @@ async def make_welcome_image(member):
         return None
 
 @bot.event
+async def setup_hook():
+    await bot.load_extension("extra")
+
+@bot.event
 async def on_ready():
     bot.add_view(TicketView()); bot.add_view(CloseView()); bot.add_view(VerifyView())
     print(f"🔥 ISC ULTRA GOD MODE {bot.user}")
