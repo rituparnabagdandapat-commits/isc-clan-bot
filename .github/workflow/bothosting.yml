@@ -1,0 +1,31 @@
+# bothosting.net - ISC Clan Ultra Bot
+bot:
+  name: isc-clan-ultra
+  type: python
+  version: 3.11
+  main_file: main.py
+  extra_files:
+        - extra.py
+        - levels.json
+        - economy.json
+        - wars.json
+        - invites.json
+
+settings:
+  ram: 512
+  autorestart: true
+  autoupdate: true
+
+startup:
+  install: pip install -r requirements.txt
+  run: python main.py
+
+env:
+    - DISCORD_TOKEN
+
+dependencies:
+    - Pillow
+    - aiohttp
+    - yt-dlp
+    - PyNaCl
+    - discord.py>=2.3.0
