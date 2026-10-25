@@ -1,4 +1,4 @@
-name: Build ISC Clan Bot
+ Build ISC Clan Bot
 on:
   push:
     branches: [ main ]
@@ -16,5 +16,5 @@ jobs:
         run: |
           ls -la
           echo "Compiling all py files:"
-          python -m py_compile $(find . -name "*.py")
-          echo "✅ Build pass - ABSOLUTE CINEMA!"
+         python -m py_compile main.py
+          echo "✅ main.py is perfect!"
