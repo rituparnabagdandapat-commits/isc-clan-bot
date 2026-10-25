@@ -1,19 +1,43 @@
-name: Build ISC Clan Bot
+name: ISC Clan - Main Bot
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+    paths:
+            - 'main.py'
+            - 'extra.py'
+            - 'requirements.txt'
   workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+            - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+            - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-      - name: Install requirements
-        run: pip install -r requirements.txt
-      - name: Check main.py
-        run: python -m py_compile main.py
+          python-version: '3.11'
+          cache: 'pip'
+
+            - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install Pillow aiohttp yt-dlp PyNaCl discord.py
+
+            - name: 🔍 Verify Files
+        run: |
+          echo "Checking main.py and extra.py exist..."
+          ls -la main.py extra.py requirements.txt
+          python -m py_compile main.py extra.py
+          echo "✅ Both files OK"
+
+            - name: 🚀 Run ISC Clan Ultra Bot
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        run: |
+          echo "Starting main.py (which auto-loads extra.py)..."
+          python main.py
