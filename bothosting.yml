@@ -1,16 +1,20 @@
 # bothosting.net - ISC Clan Ultra Bot
 bot:
-  name: isc-clan-ultra
-  type: python
-  version: 3.11
+  name: ISC Clan Bot
   main_file: main.py
-  extra_files:
-        - extra.py
-        - levels.json
-        - economy.json
-        - wars.json
-        - invites.json
-
+  python_version: 3.11
+  install_command: pip install -r requirements.txt
+  start_command: python main.py
+  auto_restart: true
+  files:
+    - main.py
+    - extra.py
+    - requirements.txt
+    - economy.json
+    - invites.json
+    - levels.json
+    - wars.json
+    - README.txt
 settings:
   ram: 512
   autorestart: true
