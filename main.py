@@ -81,7 +81,11 @@ async def setup_hook():
 @bot.event
 async def on_ready():
     bot.add_view(TicketView()); bot.add_view(CloseView()); bot.add_view(VerifyView())
-    print(f"🔥 ISC ULTRA GOD MODE {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        print(f"🔥 ISC ULTRA GOD MODE {bot.user} - Synced {len(synced)} commands!")
+    except Exception as e:
+        print(f"Failed to sync: {e}")
 
 @bot.event
 async def on_member_join(member):
