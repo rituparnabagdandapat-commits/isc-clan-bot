@@ -10,6 +10,7 @@ intents.message_content = True
 intents.members = True
 intents.presences = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+bot.remove_command("help")
 
 # DB INIT
 for f, d in [("levels.json", {}), ("economy.json", {}), ("wars.json", {}), ("invites.json", {})]:
@@ -54,15 +55,12 @@ class VerifyView(View):
 # --- WELCOME IMAGE GENERATOR ---
 async def make_welcome_image(member):
     try:
-        # Create banner 1000x300
         img = Image.new('RGB', (1000, 300), color=(30, 30, 50))
         draw = ImageDraw.Draw(img)
-        # Download avatar
         async with aiohttp.ClientSession() as session:
             async with session.get(member.display_avatar.url) as resp:
                 data = await resp.read()
                 avatar = Image.open(io.BytesIO(data)).resize((200,200))
-                # Circle mask
                 mask = Image.new('L', (200,200), 0); ImageDraw.Draw(mask).ellipse((0,0,200,200), fill=255)
                 img.paste(avatar, (50,50), mask)
         draw.text((300, 50), f"WELCOME TO ISC CLAN", fill=(255,255,255), font=ImageFont.load_default())
@@ -99,7 +97,6 @@ async def on_member_join(member):
             await ch.send(embed=embed, file=file, view=VerifyView())
         else:
             await ch.send(f"Welcome {member.mention} to ISC Clan! #{member.guild.member_count}", view=VerifyView())
-    # Invite tracker
     invites = await member.guild.invites()
     for inv in invites:
         if inv.uses > load("invites.json").get(str(inv.code), 0):
@@ -109,19 +106,16 @@ async def on_member_join(member):
 @bot.event
 async def on_message(message):
     if message.author.bot: return
-    # Automod
     if not message.author.guild_permissions.manage_messages:
         if "discord.gg" in message.content or "http://" in message.content and "tenor" not in message.content:
             await message.delete()
             return await message.channel.send(f"{message.author.mention} No links!", delete_after=5)
-    # XP
     data = load("levels.json"); uid=str(message.author.id)
     if uid not in data: data[uid]={"xp":0,"level":1}
     data[uid]["xp"]+=random.randint(5,15)
     if data[uid]["xp"] >= data[uid]["level"]*100:
         data[uid]["level"]+=1; await message.channel.send(f"GG {message.author.mention} Level {data[uid]['level']}!")
     save("levels.json", data)
-    # AI CHAT - mention bot
     if bot.user in message.mentions:
         replies = ["ISC Clan OP 🔥", f"Yo {message.author.name} what up?", "Need help? Create ticket!", "ISC on top!", "War time? !createwar"]
         await message.reply(random.choice(replies))
@@ -164,19 +158,16 @@ async def joinwar(ctx, *, enemy): wars=load("wars.json"); wars[enemy]["players"]
 @bot.command()
 async def warlist(ctx): wars=load("wars.json"); await ctx.send(f"Wars: {', '.join(wars.keys()) or 'None'}")
 
-# --- MUSIC (basic) ---
+# --- MUSIC ---
 @bot.command()
 async def join(ctx): 
     if ctx.author.voice: await ctx.author.voice.channel.connect()
     else: await ctx.send("Join VC first!")
-
 @bot.command()
 async def leave(ctx): 
     if ctx.voice_client: await ctx.voice_client.disconnect()
-
 @bot.command()
 async def play(ctx, *, url):
-    # Needs yt-dlp + ffmpeg on host - bothosting supports
     await ctx.send(f"🎵 Playing: {url} (Add ffmpeg in bothosting if not working)")
 
 # --- FUN + UTILITY ---
@@ -209,7 +200,25 @@ async def verifypanel(ctx): await ctx.send(embed=discord.Embed(title="Verify", d
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def rules(ctx): await ctx.send(embed=discord.Embed(title="📜 ISC Rules", description="1. No spam\n2. Respect\n3. No NSFW\n4. No links\n5. ISC OP", color=0xFF0000))
+
 @bot.command()
-async def helpisc(ctx): await ctx.send(embed=discord.Embed(title="ISC ULTRA BOT - ALL COMMANDS", description="`!kick !ban !timeout !clear !nuke !balance !daily !work !rob !leaderboard !createwar !joinwar !warlist !join !leave !play !avatar !say !8ball !serverinfo !poll !giveaway !invites !ticketpanel !verifypanel !rules\nMention bot for AI chat!`", color=0x5865F2))
+async def helpisc(ctx):
+    embed = discord.Embed(
+        title="🔥 ISC ULTRA - COMMAND CENTER",
+        description="Prefix: `!` | Mention bot for AI chat",
+        color=0x00ff88
+    )
+    embed.add_field(name="🛡️ MOD GOD", value="`!kick` `!ban` `!timeout` `!clear` `!nuke`", inline=False)
+    embed.add_field(name="💰 ECONOMY", value="`!balance` `!daily` `!work` `!rob` `!leaderboard`", inline=False)
+    embed.add_field(name="⚔️ CLAN WAR", value="`!createwar` `!joinwar` `!warlist`", inline=False)
+    embed.add_field(name="🎵 VC & FUN", value="`!join` `!leave` `!play` `!avatar` `!8ball` `!poll` `!giveaway` `!invites`", inline=False)
+    embed.add_field(name="🎫 PANELS", value="`!ticketpanel` `!verifypanel` `!rules` `!serverinfo` `!say`", inline=False)
+    embed.set_thumbnail(url=bot.user.display_avatar.url)
+    embed.set_footer(text="ISC Clan OP 🔥")
+    await ctx.send(embed=embed)
+
+@bot.command(name="help")
+async def help_cmd(ctx):
+    await helpisc(ctx)
 
 bot.run(os.getenv("DISCORD_TOKEN"))
