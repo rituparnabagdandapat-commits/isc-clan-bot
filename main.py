@@ -1,11 +1,45 @@
-import discord
-from discord.ext import commands
-from discord.ui import View, Button
 import os, random, asyncio
 from datetime import datetime, timedelta
 
+import discord
+from discord.ext import commands
+from discord.ui import View, Button
+
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+
+
+def chatbot_reply(user_message: str) -> str:
+    if not user_message or not user_message.strip():
+        return "I didn't hear anything."
+
+    text = user_message.strip()
+    lower = text.lower()
+
+    if "hello" in lower or "hi" in lower:
+        return random.choice(["Hello! 👋", "Hi there! How can I help?", "Heyy! What’s up?"])
+    if "how are you" in lower:
+        return "I’m doing great, thanks for asking! 😄"
+    if "bye" in lower or "goodbye" in lower or "exit" in lower:
+        return random.choice(["Bye bye! 👋", "See you later!", "Goodbye! Come back soon!"])
+    if "clan" in lower or "isc" in lower:
+        return random.choice(["ISC Clan is🔥 legendary!", "ISC is the best squad around!", "ISC all day, every day! 🔥"])
+    if "love" in lower:
+        return "Aww, that’s sweet 💖"
+    if "joke" in lower:
+        return random.choice(["Why did the bot cross the road? To reach the Discord server! 🤖", "I’m not saying I’m funny, but my code has good jokes."])
+    if "help" in lower:
+        return "Use `!help` to see commands, or type a normal message and I’ll reply!"
+
+    return random.choice([
+        "That sounds cool! 😎",
+        "I’m here and ready to chat!",
+        "Nice! Tell me more.",
+        "I understand. What would you like to do next?",
+        "That’s interesting!",
+        "Got it!",
+    ])
+
 
 # ========== VIEWS ==========
 class VerifyView(View):
@@ -29,17 +63,50 @@ class CloseView(View):
     @discord.ui.button(label="🔒 Close", style=discord.ButtonStyle.red, custom_id="c1")
     async def c(self, i, b): await i.channel.delete()
 
+
 @bot.event
 async def setup_hook():
     bot.add_view(VerifyView()); bot.add_view(TicketView()); bot.add_view(CloseView())
     try: await bot.load_extension("extra")
     except: print("No extra.py - skipping")
 
+
 @bot.event
 async def on_ready():
     s = await bot.tree.sync()
     print(f"✅ Synced {len(s)} slash commands! - ISC ULTRA GOD {bot.user}")
     await bot.change_presence(activity=discord.Game(name=f"ISC | /help | {len(s)} cmds"))
+
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    if message.content.startswith("!"):
+        await bot.process_commands(message)
+        return
+
+    if bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
+        await message.channel.send(chatbot_reply(message.content))
+
+
+@bot.command(name="chat", help="Chat with the bot")
+async def chat_command(ctx, *, text: str):
+    await ctx.send(chatbot_reply(text))
+
+
+@bot.command(name="talk", help="Make the bot speak text using text-to-speech")
+async def talk_command(ctx, *, text: str):
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        engine.say(text)
+        engine.runAndWait()
+        await ctx.send(f"✅ Talking: {text}")
+    except Exception as e:
+        await ctx.send(f"⚠️ Text-to-speech is not available right now: {e}")
+
 
 # ========== HELP ==========
 @bot.tree.command(name="help", description="Show all 50 commands")
@@ -50,6 +117,7 @@ async def help_c(i):
     e.add_field(name="🎫 Utility (7)", value="`/verify-panel /ticket-panel /poll /embed /say /dm /afk`", inline=False)
     e.add_field(name="😂 Fun (10)", value="`/8ball /coinflip /roll /rps /meme /joke /roast /howgay /pp /iq`", inline=False)
     e.add_field(name="💰 Economy Fun (10)", value="`/balance /work /daily /beg /slots /rob /leaderboard /give /ship /slap`", inline=False)
+    e.add_field(name="🤖 Chat", value="`!chat <message> / !talk <message>`", inline=False)
     await i.response.send_message(embed=e)
 
 # ========== MODERATION 13 ==========
@@ -115,8 +183,7 @@ async def ping_c(i): await i.response.send_message(f"🏓 {round(bot.latency*100
 
 @bot.tree.command(name="userinfo", description="User info")
 async def userinfo_c(i, member: discord.Member=None):
-    m=member or i.user; e=discord.Embed(title=str(m), color=m.color); e.set_thumbnail(url=m.display_avatar.url); e.add_field(name="ID", value=m.id); e.add_field(name="Joined", value=m.joined_at.strftime("%d/%m/%Y"))
-    await i.response.send_message(embed=e)
+    m=member or i.user; e=discord.Embed(title=str(m), color=m.color); e.set_thumbnail(url=m.display_avatar.url); e.add_field(name="ID", value=m.id); e.add_field(name="Joined", value=m.joined_at.strftime('%d/%m/%Y')); e.add_field(name="Status", value=str(m.status)); await i.response.send_message(embed=e)
 
 @bot.tree.command(name="serverinfo", description="Server info")
 async def serverinfo_c(i): g=i.guild; e=discord.Embed(title=g.name, color=0x00ff00); e.add_field(name="Members", value=g.member_count); e.add_field(name="Owner", value=str(g.owner)); await i.response.send_message(embed=e)
@@ -145,14 +212,14 @@ async def uptime_c(i): await i.response.send_message(f"✅ Online since <t:{int(
 # ========== UTILITY 7 ==========
 @bot.tree.command(name="verify-panel", description="Verify panel")
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def vp_c(i): e=discord.Embed(title="✅ Verify", description="Click to verify!", color=discord.Color.green()); await i.channel.send(embed=e, view=VerifyView()); await i.response.send_message("Sent!", ephemeral=True)
+async def vp_c(i): e=discord.Embed(title="✅ Verify", description="Click to verify!", color=discord.Color.green()); await i.channel.send(embed=e, view=VerifyView()); await i.response.send_message("✅ Verify panel sent!", ephemeral=True)
 
 @bot.tree.command(name="ticket-panel", description="Ticket panel")
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def tp_c(i): e=discord.Embed(title="🎫 Support", description="Click to open ticket!", color=discord.Color.blurple()); await i.channel.send(embed=e, view=TicketView()); await i.response.send_message("Sent!", ephemeral=True)
+async def tp_c(i): e=discord.Embed(title="🎫 Support", description="Click to open ticket!", color=discord.Color.blurple()); await i.channel.send(embed=e, view=TicketView()); await i.response.send_message("✅ Ticket panel sent!", ephemeral=True)
 
 @bot.tree.command(name="poll", description="Create poll")
-async def poll_c(i, question: str): e=discord.Embed(title="📊 Poll", description=question, color=0x00ff00); msg=await i.channel.send(embed=e); await msg.add_reaction("✅"); await msg.add_reaction("❌"); await i.response.send_message("Poll created!", ephemeral=True)
+async def poll_c(i, question: str): e=discord.Embed(title="📊 Poll", description=question, color=0x00ff00); msg=await i.channel.send(embed=e); await msg.add_reaction("✅"); await msg.add_reaction("❌"); await i.response.send_message("✅ Poll created!", ephemeral=True)
 
 @bot.tree.command(name="embed", description="Make embed")
 async def embed_c(i, title: str, description: str): e=discord.Embed(title=title, description=description, color=0xFF0000); await i.channel.send(embed=e); await i.response.send_message("Sent!", ephemeral=True)
@@ -181,7 +248,7 @@ async def roll_c(i, max: int=100): await i.response.send_message(f"🎲 {random.
 
 @bot.tree.command(name="rps", description="Rock Paper Scissors")
 async def rps_c(i, choice: str):
-    bot_c=random.choice(["rock","paper","scissors"]); await i.response.send_message(f"You: {choice} | Bot: {bot_c} | {'You Win!' if (choice=='rock' and bot_c=='scissors') or (choice=='paper' and bot_c=='rock') or (choice=='scissors' and bot_c=='paper') else 'You Lose!' if choice!=bot_c else 'Draw!'}")
+    bot_c=random.choice(["rock","paper","scissors"]); await i.response.send_message(f"You: {choice} | Bot: {bot_c} | {'You Win!' if (choice=='rock' and bot_c=='scissors') or (choice=='paper' and bot_c=='rock') or (choice=='scissors' and bot_c=='paper') else 'You Lose!' if (choice=='rock' and bot_c=='paper') or (choice=='paper' and bot_c=='scissors') or (choice=='scissors' and bot_c=='rock') else 'Draw!'}")
 
 @bot.tree.command(name="meme", description="Random meme text")
 async def meme_c(i): await i.response.send_message(random.choice(["POV: You are in ISC Clan 🔥", "When you get banned from ISC 😭", "ISC ULTRA GOD MODE ACTIVATED"]))
@@ -215,7 +282,7 @@ async def daily_c(i): await i.response.send_message(f"🎁 Daily: ${random.randi
 async def beg_c(i): await i.response.send_message(random.choice([f"Someone gave you $10", "No one gave you anything lol", f"You got ${random.randint(1,100)}"]))
 
 @bot.tree.command(name="slots", description="Slot machine")
-async def slots_c(i): emojis=["🍒","🍋","💎","7️⃣","🍀"]; res=[random.choice(emojis) for _ in range(3)]; win="WIN" if res[0]==res[1]==res[2] else "LOSE"; await i.response.send_message(f"{' | '.join(res)} - {win}!")
+async def slots_c(i): emojis=["🍒","🍋","💎","7️⃣","🍀"]; res=[random.choice(emojis) for _ in range(3)]; win="WIN" if res[0]==res[1]==res[2] else "LOSE"; await i.response.send_message(f"🎰 {res[0]} {res[1]} {res[2]} | {win}")
 
 @bot.tree.command(name="rob", description="Rob someone")
 async def rob_c(i, member: discord.Member): await i.response.send_message(f"🦹 You robbed {member.mention} and got ${random.randint(0,500)}!")
