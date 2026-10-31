@@ -11,33 +11,92 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 def chatbot_reply(user_message: str) -> str:
     if not user_message or not user_message.strip():
-        return "I didn't hear anything."
+        return "Yo bro, say something first 😎"
 
     text = user_message.strip()
     lower = text.lower()
 
-    if "hello" in lower or "hi" in lower:
-        return random.choice(["Hello! 👋", "Hi there! How can I help?", "Heyy! What’s up?"])
-    if "how are you" in lower:
-        return "I’m doing great, thanks for asking! 😄"
-    if "bye" in lower or "goodbye" in lower or "exit" in lower:
-        return random.choice(["Bye bye! 👋", "See you later!", "Goodbye! Come back soon!"])
-    if "clan" in lower or "isc" in lower:
-        return random.choice(["ISC Clan is🔥 legendary!", "ISC is the best squad around!", "ISC all day, every day! 🔥"])
-    if "love" in lower:
-        return "Aww, that’s sweet 💖"
-    if "joke" in lower:
-        return random.choice(["Why did the bot cross the road? To reach the Discord server! 🤖", "I’m not saying I’m funny, but my code has good jokes."])
+    if any(word in lower for word in ["hello", "hi", "hey", "yo", "sup", "whats up", "what's up", "wassup"]):
+        return random.choice([
+            "Yo bro! What’s good? 😎",
+            "Heyy my man! What’s up?",
+            "Sup bro! Ready to vibe?",
+            "Yo! I’m here, what’s happening?"
+        ])
+
+    if any(word in lower for word in ["how are you", "hru", "how r u"]):
+        return random.choice([
+            "I’m good bro, just chilling and ready to chat 😌",
+            "I’m vibing, man. Ready when you are.",
+            "Absolutely locked in, bro 😎"
+        ])
+
+    if any(word in lower for word in ["bye", "goodbye", "later", "gn", "see ya"]):
+        return random.choice([
+            "Catch you later bro 👋",
+            "Later my man!",
+            "Peace out! See you soon 😎",
+            "Bye bro, keep it real!"
+        ])
+
+    if any(word in lower for word in ["clan", "isc", "team", "squad"]):
+        return random.choice([
+            "ISC clan is straight fire 🔥",
+            "That’s the squad right there, no cap.",
+            "ISC all day, every day bro!",
+            "Big respect to the ISC family 💯"
+        ])
+
+    if any(word in lower for word in ["love", "luv", "heart", "cute"]):
+        return random.choice([
+            "Aww man, that’s sweet 💖",
+            "That’s wholesome bro 😌",
+            "Love vibes only, fam ❤️"
+        ])
+
+    if any(word in lower for word in ["joke", "funny", "lol", "haha"]):
+        return random.choice([
+            "Why did the bot cross the road? To get to the Discord server 😹",
+            "I’m not funny, I’m just built different 😂",
+            "Bro, my code is 90% jokes and 10% chaos"
+        ])
+
+    if any(word in lower for word in ["sad", "stress", "tired", "angry", "down"]):
+        return random.choice([
+            "Nah, don’t let it get you down bro. One step at a time 😌",
+            "Take a breather, fam. You got this.",
+            "Stay strong, man. You’re tougher than this."
+        ])
+
+    if any(word in lower for word in ["bro", "dude", "man", "fam", "my guy"]):
+        return random.choice([
+            "That’s what’s up bro 😎",
+            "No doubt, fam.",
+            "You’re speaking my language now.",
+            "Haha, I’m with you on that one"
+        ])
+
+    if "what's up" in lower or "whats up" in lower or "sup" in lower:
+        return random.choice([
+            "Yo, just vibing and ready to talk bro 😎",
+            "Not much, just here keeping it real.",
+            "Chillin’ and waiting for your next message, fam."
+        ])
+
     if "help" in lower:
-        return "Use `!help` to see commands, or type a normal message and I’ll reply!"
+        return "Bro, use `!help` for commands, or just talk to me normally and I’ll keep it real 😎"
 
     return random.choice([
-        "That sounds cool! 😎",
-        "I’m here and ready to chat!",
-        "Nice! Tell me more.",
-        "I understand. What would you like to do next?",
-        "That’s interesting!",
-        "Got it!",
+        "That’s fire bro 🔥",
+        "No cap, that’s actually pretty cool.",
+        "I’m listening, fam 😌",
+        "Yo, tell me more about that.",
+        "That sounds legit.",
+        "Haha, you’re wild bro 😂",
+        "I’m with you on that one.",
+        "That’s a solid vibe right there.",
+        "Straight up, that’s interesting.",
+        "Nice one, bro. Keep going."
     ])
 
 
