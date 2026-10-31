@@ -19,8 +19,6 @@ def chatbot_reply(user_message: str) -> str:
     if any(word in lower for word in ["hello", "hi", "hey", "yo", "sup", "whats up", "what's up", "wassup"]):
         return random.choice([
             "Yo bro! What’s good? 😎",
-            "Heyy my man! What’s up?",
-            "Sup bro! Ready to vibe?",
             "Yo! I’m here, what’s happening?"
         ])
 
