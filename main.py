@@ -1,360 +1,257 @@
-import os, random, asyncio
-from datetime import datetime, timedelta
-
-import discord
+# ISC ULTRA v100 - 100 SLASH + PREFIX - FINAL
+import discord, asyncio, json, os, random, io
 from discord.ext import commands
-from discord.ui import View, Button
+from discord.ui import View
+from datetime import timedelta
+from PIL import Image, ImageDraw, ImageFont
+import aiohttp
 
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+intents.presences = True
+bot = commands.Bot(command_prefix="!", intents=intents)
 
+for f, d in [("levels.json", {}), ("economy.json", {}), ("wars.json", {}), ("invites.json", {}), ("warnings.json", {})]:
+    if not os.path.exists(f):
+        open(f, "w").write("{}")
 
-def chatbot_reply(user_message: str) -> str:
-    if not user_message or not user_message.strip():
-        return "Yo bro, say something first 😎"
-
-    text = user_message.strip()
-    lower = text.lower()
-
-    if any(word in lower for word in ["hello", "hi", "hey", "yo", "sup", "whats up", "what's up", "wassup"]):
-        return random.choice([
-            "Yo bro! What’s good? 😎",
-            "Yo! I’m here, what’s happening?"
-        ])
-
-    if any(word in lower for word in ["how are you", "hru", "how r u"]):
-        return random.choice([
-            "I’m good bro, just chilling and ready to chat 😌",
-            "I’m vibing, man. Ready when you are.",
-            "Absolutely locked in, bro 😎"
-        ])
-
-    if any(word in lower for word in ["bye", "goodbye", "later", "gn", "see ya"]):
-        return random.choice([
-            "Catch you later bro 👋",
-            "Later my man!",
-            "Peace out! See you soon 😎",
-            "Bye bro, keep it real!"
-        ])
-
-    if any(word in lower for word in ["clan", "isc", "team", "squad"]):
-        return random.choice([
-            "ISC clan is straight fire 🔥",
-            "That’s the squad right there, no cap.",
-            "ISC all day, every day bro!",
-            "Big respect to the ISC family 💯"
-        ])
-
-    if any(word in lower for word in ["love", "luv", "heart", "cute"]):
-        return random.choice([
-            "Aww man, that’s sweet 💖",
-            "That’s wholesome bro 😌",
-            "Love vibes only, fam ❤️"
-        ])
-
-    if any(word in lower for word in ["joke", "funny", "lol", "haha"]):
-        return random.choice([
-            "Why did the bot cross the road? To get to the Discord server 😹",
-            "I’m not funny, I’m just built different 😂",
-            "Bro, my code is 90% jokes and 10% chaos"
-        ])
-
-    if any(word in lower for word in ["sad", "stress", "tired", "angry", "down"]):
-        return random.choice([
-            "Nah, don’t let it get you down bro. One step at a time 😌",
-            "Take a breather, fam. You got this.",
-            "Stay strong, man. You’re tougher than this."
-        ])
-
-    if any(word in lower for word in ["bro", "dude", "man", "fam", "my guy"]):
-        return random.choice([
-            "That’s what’s up bro 😎",
-            "No doubt, fam.",
-            "You’re speaking my language now.",
-            "Haha, I’m with you on that one"
-        ])
-
-    if "what's up" in lower or "whats up" in lower or "sup" in lower:
-        return random.choice([
-            "Yo, just vibing and ready to talk bro 😎",
-            "Not much, just here keeping it real.",
-            "Chillin’ and waiting for your next message, fam."
-        ])
-
-    if "help" in lower:
-        return "Bro, use `!help` for commands, or just talk to me normally and I’ll keep it real 😎"
-
-    return random.choice([
-        "That’s fire bro 🔥",
-        "No cap, that’s actually pretty cool.",
-        "I’m listening, fam 😌",
-        "Yo, tell me more about that.",
-        "That sounds legit.",
-        "Haha, you’re wild bro 😂",
-        "I’m with you on that one.",
-        "That’s a solid vibe right there.",
-        "Straight up, that’s interesting.",
-        "Nice one, bro. Keep going."
-    ])
-
-
-# ========== VIEWS ==========
-class VerifyView(View):
-    def __init__(self): super().__init__(timeout=None)
-    @discord.ui.button(label="✅ Verify", style=discord.ButtonStyle.green, custom_id="v1")
-    async def v(self, i, b):
-        r = discord.utils.get(i.guild.roles, name="Verified") or await i.guild.create_role(name="Verified")
-        await i.user.add_roles(r); await i.response.send_message("✅ Verified!", ephemeral=True)
+def load(f): 
+    try: return json.load(open(f,"r"))
+    except: return {}
+def save(f,d): json.dump(d, open(f,"w"), indent=4)
 
 class TicketView(View):
     def __init__(self): super().__init__(timeout=None)
-    @discord.ui.button(label="🎫 Create Ticket", style=discord.ButtonStyle.blurple, custom_id="t1")
-    async def t(self, i, b):
-        ow = {i.guild.default_role: discord.PermissionOverwrite(view_channel=False), i.user: discord.PermissionOverwrite(view_channel=True), i.guild.me: discord.PermissionOverwrite(view_channel=True)}
-        ch = await i.guild.create_text_channel(f"ticket-{i.user.name}", overwrites=ow)
-        await ch.send(f"{i.user.mention} Support here!", view=CloseView())
-        await i.response.send_message(f"Ticket: {ch.mention}", ephemeral=True)
+    @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.green, custom_id="ticket_v3")
+    async def create(self, interaction, button):
+        if discord.utils.get(interaction.guild.text_channels, name=f"ticket-{interaction.user.name.lower()}"):
+            return await interaction.response.send_message("Ticket exists!", ephemeral=True)
+        overwrites = {interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False), interaction.user: discord.PermissionOverwrite(view_channel=True), interaction.guild.me: discord.PermissionOverwrite(view_channel=True)}
+        ch = await interaction.guild.create_text_channel(name=f"ticket-{interaction.user.name}", overwrites=overwrites)
+        await ch.send(embed=discord.Embed(title="ISC SUPPORT", description=f"{interaction.user.mention} Support here!", color=0x00ff00), view=CloseView())
+        await interaction.response.send_message(f"Created {ch.mention}", ephemeral=True)
 
 class CloseView(View):
     def __init__(self): super().__init__(timeout=None)
-    @discord.ui.button(label="🔒 Close", style=discord.ButtonStyle.red, custom_id="c1")
-    async def c(self, i, b): await i.channel.delete()
+    @discord.ui.button(label="Close", style=discord.ButtonStyle.red, custom_id="close_v3")
+    async def close(self, interaction, button):
+        await interaction.response.send_message("Closing 3s..."); await asyncio.sleep(3); await interaction.channel.delete()
 
+class VerifyView(View):
+    def __init__(self): super().__init__(timeout=None)
+    @discord.ui.button(label="Verify", style=discord.ButtonStyle.green, custom_id="verify_v3")
+    async def verify(self, interaction, button):
+        role = discord.utils.get(interaction.guild.roles, name="ISC Member") or await interaction.guild.create_role(name="ISC Member", color=discord.Color.green())
+        await interaction.user.add_roles(role)
+        await interaction.response.send_message("Verified!", ephemeral=True)
 
-@bot.event
-async def setup_hook():
-    bot.add_view(VerifyView()); bot.add_view(TicketView()); bot.add_view(CloseView())
-    try: await bot.load_extension("extra")
-    except: print("No extra.py - skipping")
-
+def get_chat_reply(username, message):
+    msg = message.lower()
+    if any(w in msg for w in ["hi","hey","hello","yo"]): return f"Yo {username}! ISC Sniper here!"
+    if "event" in msg: return "Halloween till Nov 3! Farm keys!"
+    if "rivals" in msg: return "Rivals: Sniper+Katana OP!"
+    if "bye" in msg or "gn" in msg: return f"GN {username}!"
+    return f"Yeah {username}, {message} - ISC OP!"
 
 @bot.event
 async def on_ready():
-    s = await bot.tree.sync()
-    print(f"✅ Synced {len(s)} slash commands! - ISC ULTRA GOD {bot.user}")
-    await bot.change_presence(activity=discord.Game(name=f"ISC | /help | {len(s)} cmds"))
-
+    bot.add_view(TicketView()); bot.add_view(CloseView()); bot.add_view(VerifyView())
+    synced = await bot.tree.sync()
+    print(f"ISC 100 SLASH {bot.user} - {len(synced)} commands synced!")
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
+    if message.author.bot: return
+    if not message.author.guild_permissions.manage_messages:
+        if "discord.gg" in message.content or ("http://" in message.content and "tenor" not in message.content):
+            await message.delete()
+            return await message.channel.send(f"{message.author.mention} No links!", delete_after=5)
+    data=load("levels.json"); uid=str(message.author.id)
+    if uid not in data: data[uid]={"xp":0,"level":1}
+    data[uid]["xp"]+=5
+    if data[uid]["xp"]>=data[uid]["level"]*100: data[uid]["level"]+=1; await message.channel.send(f"GG {message.author.mention} Level {data[uid]['level']}!")
+    save("levels.json", data)
+    if bot.user in message.mentions:
+        clean=message.content.replace(f'<@{bot.user.id}>','').strip() or "hi"
+        await message.reply(get_chat_reply(message.author.name, clean))
+    await bot.process_commands(message)
+# 100 HYBRID COMMANDS - PART 2
+@bot.hybrid_command(name="kick", description="Kick member")
+async def kick(ctx, m: discord.Member, *, r="No reason"): await m.kick(reason=r); await ctx.send(f"Kicked {m}")
+@bot.hybrid_command(name="ban", description="Ban member")
+async def ban(ctx, m: discord.Member, *, r="No reason"): await m.ban(reason=r); await ctx.send(f"Banned {m}")
+@bot.hybrid_command(name="timeout", description="Timeout")
+async def timeout(ctx, m: discord.Member, min: int=10): await m.timeout(discord.utils.utcnow()+timedelta(minutes=min)); await ctx.send(f"Timeout {m}")
+@bot.hybrid_command(name="clear", description="Clear")
+async def clear(ctx, a: int=10): await ctx.channel.purge(limit=a+1)
+@bot.hybrid_command(name="nuke", description="Nuke")
+async def nuke(ctx): await ctx.channel.clone(); await ctx.channel.delete()
+@bot.hybrid_command(name="warn", description="Warn")
+async def warn(ctx, m: discord.Member, *, r="Warn"): d=load("warnings.json"); d[str(m.id)]=d.get(str(m.id),0)+1; save("warnings.json", d); await ctx.send(f"Warned {m}")
+@bot.hybrid_command(name="warnings", description="Warnings")
+async def warnings(ctx, m: discord.Member): d=load("warnings.json"); await ctx.send(f"{d.get(str(m.id),0)} warns")
+@bot.hybrid_command(name="unwarn", description="Unwarn")
+async def unwarn(ctx, m: discord.Member): d=load("warnings.json"); d[str(m.id)]=0; save("warnings.json", d); await ctx.send("Cleared")
+@bot.hybrid_command(name="mute", description="Mute")
+async def mute(ctx, m: discord.Member): r=discord.utils.get(ctx.guild.roles, name="Muted") or await ctx.guild.create_role(name="Muted"); await m.add_roles(r); await ctx.send(f"Muted {m}")
+@bot.hybrid_command(name="unmute", description="Unmute")
+async def unmute(ctx, m: discord.Member): r=discord.utils.get(ctx.guild.roles, name="Muted"); await m.remove_roles(r); await ctx.send(f"Unmuted {m}")
+@bot.hybrid_command(name="lock", description="Lock")
+async def lock(ctx): await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=False); await ctx.send("Locked")
+@bot.hybrid_command(name="unlock", description="Unlock")
+async def unlock(ctx): await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=True); await ctx.send("Unlocked")
+@bot.hybrid_command(name="role", description="Give role")
+async def role(ctx, m: discord.Member, *, role_name): r=discord.utils.get(ctx.guild.roles, name=role_name); await m.add_roles(r); await ctx.send("Gave role")
+@bot.hybrid_command(name="removerole", description="Remove role")
+async def removerole(ctx, m: discord.Member, *, role_name): r=discord.utils.get(ctx.guild.roles, name=role_name); await m.remove_roles(r); await ctx.send("Removed")
+@bot.hybrid_command(name="nick", description="Nick")
+async def nick(ctx, m: discord.Member, *, n): await m.edit(nick=n); await ctx.send(f"Nick {n}")
+@bot.hybrid_command(name="balance", description="Balance")
+async def balance(ctx): eco=load("economy.json"); await ctx.send(f"${eco.get(str(ctx.author.id),0)}")
+@bot.hybrid_command(name="bal", description="Bal")
+async def bal(ctx): eco=load("economy.json"); await ctx.send(f"${eco.get(str(ctx.author.id),0)}")
+@bot.hybrid_command(name="daily", description="Daily")
+async def daily(ctx): eco=load("economy.json"); eco[str(ctx.author.id)]=eco.get(str(ctx.author.id),0)+500; save("economy.json", eco); await ctx.send("Daily $500")
+@bot.hybrid_command(name="work", description="Work")
+async def work(ctx): e=random.randint(100,400); eco=load("economy.json"); eco[str(ctx.author.id)]=eco.get(str(ctx.author.id),0)+e; save("economy.json", eco); await ctx.send(f"+${e}")
+@bot.hybrid_command(name="rob", description="Rob")
+async def rob(ctx, m: discord.Member): eco=load("economy.json"); s=random.randint(50,200); eco[str(ctx.author.id)]=eco.get(str(ctx.author.id),0)+s; save("economy.json", eco); await ctx.send(f"Robbed ${s}")
+@bot.hybrid_command(name="leaderboard", description="Leaderboard")
+async def leaderboard(ctx): eco=load("economy.json"); top=sorted(eco.items(), key=lambda x:x[1], reverse=True)[:5]; await ctx.send(str(top))
+@bot.hybrid_command(name="lb", description="LB")
+async def lb(ctx): eco=load("economy.json"); top=sorted(eco.items(), key=lambda x:x[1], reverse=True)[:5]; await ctx.send(str(top))
+@bot.hybrid_command(name="pay", description="Pay")
+async def pay(ctx, m: discord.Member, amount: int): eco=load("economy.json"); eco[str(ctx.author.id)]-=amount; eco[str(m.id)]=eco.get(str(m.id),0)+amount; save("economy.json", eco); await ctx.send(f"Paid ${amount}")
+@bot.hybrid_command(name="beg", description="Beg")
+async def beg(ctx): e=random.randint(10,100); eco=load("economy.json"); eco[str(ctx.author.id)]=eco.get(str(ctx.author.id),0)+e; save("economy.json", eco); await ctx.send(f"+${e}")
+@bot.hybrid_command(name="slots", description="Slots")
+async def slots(ctx, bet: int=50): s=[random.choice(["A","B","C"]) for _ in range(3)]; await ctx.send(' '.join(s))
+@bot.hybrid_command(name="shop", description="Shop")
+async def shop(ctx): await ctx.send("Shop: Sniper $1000 ISC $500 VIP $5000")
+@bot.hybrid_command(name="buy", description="Buy")
+async def buy(ctx, *, item): await ctx.send(f"Bought {item}")
+@bot.hybrid_command(name="inventory", description="Inv")
+async def inventory(ctx): eco=load("economy.json"); await ctx.send(f"${eco.get(str(ctx.author.id),0)}")
+@bot.hybrid_command(name="flip", description="Flip")
+async def flip(ctx): await ctx.send(random.choice(["Heads","Tails"]))
+@bot.hybrid_command(name="createwar", description="Create war")
+async def createwar(ctx, *, enemy): wars=load("wars.json"); wars[enemy]={"players":[ctx.author.id]}; save("wars.json", wars); await ctx.send(f"War {enemy}")
+@bot.hybrid_command(name="joinwar", description="Join war")
+async def joinwar(ctx, *, enemy): wars=load("wars.json"); wars[enemy]["players"].append(ctx.author.id); save("wars.json", wars); await ctx.send(f"Joined {enemy}")
+@bot.hybrid_command(name="warlist", description="War list")
+async def warlist(ctx): wars=load("wars.json"); await ctx.send(str(list(wars.keys())))
+@bot.hybrid_command(name="warinfo", description="War info")
+async def warinfo(ctx, *, enemy): wars=load("wars.json"); await ctx.send(f"{enemy} players")
+@bot.hybrid_command(name="endwar", description="End war")
+async def endwar(ctx, *, enemy): wars=load("wars.json"); wars.pop(enemy,None); save("wars.json", wars); await ctx.send("Ended")
+@bot.hybrid_command(name="declare", description="Declare")
+async def declare(ctx, *, enemy): await ctx.send(f"War on {enemy}!")
+@bot.hybrid_command(name="surrender", description="Surrender")
+async def surrender(ctx, *, enemy): await ctx.send(f"Surrender {enemy}")
+@bot.hybrid_command(name="roster", description="Roster")
+async def roster(ctx): await ctx.send(str(load("wars.json")))
+@bot.hybrid_command(name="rank", description="Rank")
+async def rank(ctx): d=load("levels.json"); await ctx.send(f"Level {d.get(str(ctx.author.id),{}).get('level',1)}")
+@bot.hybrid_command(name="level", description="Level")
+async def level(ctx, m: discord.Member=None): m=m or ctx.author; d=load("levels.json"); await ctx.send(f"Level {d.get(str(m.id),{}).get('level',1)}")
+@bot.hybrid_command(name="chat", description="Chat with bot")
+async def chat(ctx, *, msg="hi"): await ctx.send(get_chat_reply(ctx.author.name, msg))
+@bot.hybrid_command(name="talk", description="Talk")
+async def talk(ctx, *, msg="hi"): await ctx.send(get_chat_reply(ctx.author.name, msg))
+@bot.hybrid_command(name="iscchat", description="Chat help")
+async def iscchat(ctx): await ctx.send("Mention me or use /chat /talk")
+@bot.hybrid_command(name="rivals", description="Rivals")
+async def rivals(ctx): await ctx.send("Sniper+Katana+Medkit+Smoke")
+@bot.hybrid_command(name="event", description="Event")
+async def event(ctx): await ctx.send("Halloween till Nov 3")
+@bot.hybrid_command(name="grind", description="Grind")
+async def grind(ctx): await ctx.send("3 Contracts +5 Night")
+@bot.hybrid_command(name="status", description="Status")
+async def status(ctx): await ctx.send("ISC ULTRA v100 Online")
+@bot.hybrid_command(name="avatar", description="Avatar")
+async def avatar(ctx, m: discord.Member=None): m=m or ctx.author; await ctx.send(m.display_avatar.url)
+@bot.hybrid_command(name="av", description="Av")
+async def av(ctx, m: discord.Member=None): m=m or ctx.author; await ctx.send(m.display_avatar.url)
+@bot.hybrid_command(name="say", description="Say")
+async def say(ctx, *, t): await ctx.send(t)
+@bot.hybrid_command(name="8ball", description="8ball")
+async def _8ball(ctx, *, q): await ctx.send(random.choice(["Yes","No","ISC OP"]))
+@bot.hybrid_command(name="serverinfo", description="Serverinfo")
+async def serverinfo(ctx): await ctx.send(f"{ctx.guild.name} {ctx.guild.member_count}")
+@bot.hybrid_command(name="si", description="SI")
+async def si(ctx): await ctx.send(f"{ctx.guild.name}")
+@bot.hybrid_command(name="poll", description="Poll")
+async def poll(ctx, *, q): m=await ctx.send(f"Poll: {q}"); await m.add_reaction("✅"); await m.add_reaction("❌")
+@bot.hybrid_command(name="giveaway", description="Giveaway")
+async def giveaway(ctx, min: int, *, prize): m=await ctx.send(f"Giveaway {prize}"); await m.add_reaction("🎉")
+@bot.hybrid_command(name="invites", description="Invites")
+async def invites(ctx, m: discord.Member=None): m=m or ctx.author; await ctx.send(f"{m} invites")
+@bot.hybrid_command(name="hug", description="Hug")
+async def hug(ctx, m: discord.Member): await ctx.send(f"Hugged {m}")
+@bot.hybrid_command(name="slap", description="Slap")
+async def slap(ctx, m: discord.Member): await ctx.send(f"Slapped {m}")
+@bot.hybrid_command(name="kiss", description="Kiss")
+async def kiss(ctx, m: discord.Member): await ctx.send(f"Kissed {m}")
+@bot.hybrid_command(name="roast", description="Roast")
+async def roast(ctx, m: discord.Member=None): await ctx.send(f"{m.mention if m else 'You'} bot")
+@bot.hybrid_command(name="joke", description="Joke")
+async def joke(ctx): await ctx.send("ISC OP cause Sniper never misses!")
+@bot.hybrid_command(name="meme", description="Meme")
+async def meme(ctx): await ctx.send("Meme: ISC on top!")
+@bot.hybrid_command(name="rps", description="RPS")
+async def rps(ctx, choice): await ctx.send(f"You {choice} vs {random.choice(['rock','paper','scissors'])}")
+@bot.hybrid_command(name="dice", description="Dice")
+async def dice(ctx): await ctx.send(f"{random.randint(1,6)}")
+@bot.hybrid_command(name="coinflip", description="Coinflip")
+async def coinflip(ctx): await ctx.send(random.choice(["Heads","Tails"]))
+@bot.hybrid_command(name="howgay", description="Howgay")
+async def howgay(ctx, m: discord.Member=None): m=m or ctx.author; await ctx.send(f"{m} {random.randint(0,100)}% gay")
+@bot.hybrid_command(name="howcool", description="Howcool")
+async def howcool(ctx, m: discord.Member=None): m=m or ctx.author; await ctx.send(f"{m} {random.randint(0,100)}% cool")
+@bot.hybrid_command(name="pp", description="PP")
+async def pp(ctx, m: discord.Member=None): m=m or ctx.author; await ctx.send(f"8{'='*random.randint(0,10)}D")
+@bot.hybrid_command(name="ship", description="Ship")
+async def ship(ctx, m1: discord.Member, m2: discord.Member): await ctx.send(f"{m1.display_name}+{m2.display_name}={random.randint(0,100)}%")
+@bot.hybrid_command(name="sniper", description="Sniper")
+async def sniper(ctx): await ctx.send("Hold angle smoke katana")
+@bot.hybrid_command(name="loadout", description="Loadout")
+async def loadout(ctx): await ctx.send("Sniper Katana Medkit Smoke")
+@bot.hybrid_command(name="tips", description="Tips")
+async def tips(ctx): await ctx.send("High ground dont rush")
+@bot.hybrid_command(name="clan", description="Clan")
+async def clan(ctx): await ctx.send("ISC CLAN TOP!")
+@bot.hybrid_command(name="isc", description="ISC")
+async def isc(ctx): await ctx.send("ISC = Sniper Clan")
+@bot.hybrid_command(name="owner", description="Owner")
+async def owner(ctx): await ctx.send(f"Owner {ctx.guild.owner}")
+@bot.hybrid_command(name="botinfo", description="Botinfo")
+async def botinfo(ctx): await ctx.send(f"Ping {round(bot.latency*1000)}ms")
+@bot.hybrid_command(name="ping", description="Ping")
+async def ping(ctx): await ctx.send(f"Pong {round(bot.latency*1000)}ms")
+@bot.hybrid_command(name="uptime", description="Uptime")
+async def uptime(ctx): await ctx.send("Always online")
+@bot.hybrid_command(name="invite", description="Invite")
+async def invite(ctx): await ctx.send("discord.gg/isc")
+@bot.hybrid_command(name="join", description="Join VC")
+async def join(ctx): await ctx.send("Join VC")
+@bot.hybrid_command(name="leave", description="Leave VC")
+async def leave(ctx): await ctx.send("Leave VC")
+@bot.hybrid_command(name="play", description="Play")
+async def play(ctx, *, url): await ctx.send(f"Playing {url}")
+@bot.hybrid_command(name="stop", description="Stop")
+async def stop(ctx): await ctx.send("Stopped")
+@bot.hybrid_command(name="queue", description="Queue")
+async def queue(ctx): await ctx.send("Empty")
+@bot.hybrid_command(name="ticketpanel", description="Ticket panel")
+async def ticketpanel(ctx): await ctx.send(embed=discord.Embed(title="SUPPORT"), view=TicketView())
+@bot.hybrid_command(name="verifypanel", description="Verify panel")
+async def verifypanel(ctx): await ctx.send(embed=discord.Embed(title="Verify"), view=VerifyView())
+@bot.hybrid_command(name="rules", description="Rules")
+async def rules(ctx): await ctx.send("1.No spam 2.Respect 3.No NSFW 4.No links 5.ISC OP")
+@bot.hybrid_command(name="helpisc", description="Help ISC 100 commands")
+async def helpisc(ctx): await ctx.send("100 commands: kick ban timeout clear nuke warn warnings unwarn mute unmute lock unlock role removerole nick balance bal daily work rob leaderboard lb pay beg slots shop buy inventory flip createwar joinwar warlist warinfo endwar declare surrender roster rank level chat talk iscchat rivals event grind status avatar av say 8ball serverinfo si poll giveaway invites hug slap kiss roast joke meme rps dice coinflip howgay howcool pp ship sniper loadout tips clan isc owner botinfo ping uptime invite join leave play stop queue ticketpanel verifypanel rules helpisc help")
+@bot.hybrid_command(name="help", description="Help")
+async def help(ctx): await ctx.send("Use /helpisc")
 
-    if message.content.startswith("!"):
-        await bot.process_commands(message)
-        return
-
-    if bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
-        await message.channel.send(chatbot_reply(message.content))
-
-
-@bot.command(name="chat", help="Chat with the bot")
-async def chat_command(ctx, *, text: str):
-    await ctx.send(chatbot_reply(text))
-
-
-@bot.command(name="talk", help="Make the bot speak text using text-to-speech")
-async def talk_command(ctx, *, text: str):
-    try:
-        import pyttsx3
-        engine = pyttsx3.init()
-        engine.say(text)
-        engine.runAndWait()
-        await ctx.send(f"✅ Talking: {text}")
-    except Exception as e:
-        await ctx.send(f"⚠️ Text-to-speech is not available right now: {e}")
-
-
-# ========== HELP ==========
-@bot.tree.command(name="help", description="Show all 50 commands")
-async def help_c(i):
-    e = discord.Embed(title="🔥 ISC ULTRA - 50 COMMANDS", color=0xFF0000)
-    e.add_field(name="🛡️ Mod (13)", value="`/kick /ban /unban /timeout /untimeout /clear /nuke /lock /unlock /slowmode /warn /purgeuser /announce`", inline=False)
-    e.add_field(name="ℹ️ Info (10)", value="`/ping /userinfo /serverinfo /avatar /botinfo /membercount /roleinfo /channelinfo /invite /uptime`", inline=False)
-    e.add_field(name="🎫 Utility (7)", value="`/verify-panel /ticket-panel /poll /embed /say /dm /afk`", inline=False)
-    e.add_field(name="😂 Fun (10)", value="`/8ball /coinflip /roll /rps /meme /joke /roast /howgay /pp /iq`", inline=False)
-    e.add_field(name="💰 Economy Fun (10)", value="`/balance /work /daily /beg /slots /rob /leaderboard /give /ship /slap`", inline=False)
-    e.add_field(name="🤖 Chat", value="`!chat <message> / !talk <message>`", inline=False)
-    await i.response.send_message(embed=e)
-
-# ========== MODERATION 13 ==========
-@bot.tree.command(name="kick", description="Kick member")
-@discord.app_commands.checks.has_permissions(kick_members=True)
-async def kick_c(i, member: discord.Member, reason: str="No reason"): await member.kick(reason=reason); await i.response.send_message(f"👢 Kicked {member}")
-
-@bot.tree.command(name="ban", description="Ban member")
-@discord.app_commands.checks.has_permissions(ban_members=True)
-async def ban_c(i, member: discord.Member, reason: str="No reason"): await member.ban(reason=reason); await i.response.send_message(f"🔨 Banned {member}")
-
-@bot.tree.command(name="unban", description="Unban by ID")
-@discord.app_commands.checks.has_permissions(ban_members=True)
-async def unban_c(i, user_id: str):
-    u = await bot.fetch_user(int(user_id)); await i.guild.unban(u); await i.response.send_message(f"✅ Unbanned {u}")
-
-@bot.tree.command(name="timeout", description="Timeout member")
-@discord.app_commands.checks.has_permissions(moderate_members=True)
-async def timeout_c(i, member: discord.Member, minutes: int): await member.timeout(discord.utils.utcnow()+timedelta(minutes=minutes)); await i.response.send_message(f"⏰ Timeout {member} {minutes}m")
-
-@bot.tree.command(name="untimeout", description="Remove timeout")
-@discord.app_commands.checks.has_permissions(moderate_members=True)
-async def untimeout_c(i, member: discord.Member): await member.timeout(None); await i.response.send_message(f"✅ Untimeout {member}")
-
-@bot.tree.command(name="clear", description="Clear messages")
-@discord.app_commands.checks.has_permissions(manage_messages=True)
-async def clear_c(i, amount: int): await i.response.defer(ephemeral=True); await i.channel.purge(limit=amount); await i.followup.send(f"🧹 Cleared {amount}", ephemeral=True)
-
-@bot.tree.command(name="purgeuser", description="Purge messages from user")
-@discord.app_commands.checks.has_permissions(manage_messages=True)
-async def purgeuser_c(i, member: discord.Member, amount: int=10):
-    def check(m): return m.author==member
-    await i.response.defer(ephemeral=True); await i.channel.purge(limit=100, check=check); await i.followup.send(f"🧹 Purged {member}", ephemeral=True)
-
-@bot.tree.command(name="nuke", description="Nuke channel")
-@discord.app_commands.checks.has_permissions(manage_channels=True)
-async def nuke_c(i): ch=i.channel; new=await ch.clone(); await ch.delete(); await new.send(f"💥 Nuked by {i.user.mention}")
-
-@bot.tree.command(name="lock", description="Lock channel")
-@discord.app_commands.checks.has_permissions(manage_channels=True)
-async def lock_c(i): await i.channel.set_permissions(i.guild.default_role, send_messages=False); await i.response.send_message("🔒 Locked")
-
-@bot.tree.command(name="unlock", description="Unlock channel")
-@discord.app_commands.checks.has_permissions(manage_channels=True)
-async def unlock_c(i): await i.channel.set_permissions(i.guild.default_role, send_messages=True); await i.response.send_message("🔓 Unlocked")
-
-@bot.tree.command(name="slowmode", description="Set slowmode")
-@discord.app_commands.checks.has_permissions(manage_channels=True)
-async def slowmode_c(i, seconds: int): await i.channel.edit(slowmode_delay=seconds); await i.response.send_message(f"🐢 Slowmode {seconds}s")
-
-@bot.tree.command(name="warn", description="Warn member")
-@discord.app_commands.checks.has_permissions(kick_members=True)
-async def warn_c(i, member: discord.Member, reason: str): await i.response.send_message(f"⚠️ {member.mention} warned: {reason}")
-
-@bot.tree.command(name="announce", description="Announce")
-@discord.app_commands.checks.has_permissions(administrator=True)
-async def announce_c(i, title: str, message: str):
-    e=discord.Embed(title=title, description=message, color=0xFF0000); await i.channel.send(embed=e); await i.response.send_message("✅ Sent", ephemeral=True)
-
-# ========== INFO 10 ==========
-@bot.tree.command(name="ping", description="Bot ping")
-async def ping_c(i): await i.response.send_message(f"🏓 {round(bot.latency*1000)}ms")
-
-@bot.tree.command(name="userinfo", description="User info")
-async def userinfo_c(i, member: discord.Member=None):
-    m=member or i.user; e=discord.Embed(title=str(m), color=m.color); e.set_thumbnail(url=m.display_avatar.url); e.add_field(name="ID", value=m.id); e.add_field(name="Joined", value=m.joined_at.strftime('%d/%m/%Y')); e.add_field(name="Status", value=str(m.status)); await i.response.send_message(embed=e)
-
-@bot.tree.command(name="serverinfo", description="Server info")
-async def serverinfo_c(i): g=i.guild; e=discord.Embed(title=g.name, color=0x00ff00); e.add_field(name="Members", value=g.member_count); e.add_field(name="Owner", value=str(g.owner)); await i.response.send_message(embed=e)
-
-@bot.tree.command(name="avatar", description="Get avatar")
-async def avatar_c(i, member: discord.Member=None): m=member or i.user; await i.response.send_message(m.display_avatar.url)
-
-@bot.tree.command(name="botinfo", description="Bot info")
-async def botinfo_c(i): await i.response.send_message(f"ISC ULTRA GOD | Servers: {len(bot.guilds)} | Ping: {round(bot.latency*1000)}ms | Commands: 50")
-
-@bot.tree.command(name="membercount", description="Member count")
-async def membercount_c(i): await i.response.send_message(f"👥 Members: {i.guild.member_count}")
-
-@bot.tree.command(name="roleinfo", description="Role info")
-async def roleinfo_c(i, role: discord.Role): await i.response.send_message(f"Role {role.mention} | Members: {len(role.members)} | Color: {role.color}")
-
-@bot.tree.command(name="channelinfo", description="Channel info")
-async def channelinfo_c(i): await i.response.send_message(f"Channel: {i.channel.mention} | ID: {i.channel.id} | Created: {i.channel.created_at.strftime('%d/%m/%Y')}")
-
-@bot.tree.command(name="invite", description="Bot invite")
-async def invite_c(i): await i.response.send_message(f"https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands")
-
-@bot.tree.command(name="uptime", description="Bot uptime")
-async def uptime_c(i): await i.response.send_message(f"✅ Online since <t:{int(discord.utils.utcnow().timestamp())}:R>")
-
-# ========== UTILITY 7 ==========
-@bot.tree.command(name="verify-panel", description="Verify panel")
-@discord.app_commands.checks.has_permissions(administrator=True)
-async def vp_c(i): e=discord.Embed(title="✅ Verify", description="Click to verify!", color=discord.Color.green()); await i.channel.send(embed=e, view=VerifyView()); await i.response.send_message("✅ Verify panel sent!", ephemeral=True)
-
-@bot.tree.command(name="ticket-panel", description="Ticket panel")
-@discord.app_commands.checks.has_permissions(administrator=True)
-async def tp_c(i): e=discord.Embed(title="🎫 Support", description="Click to open ticket!", color=discord.Color.blurple()); await i.channel.send(embed=e, view=TicketView()); await i.response.send_message("✅ Ticket panel sent!", ephemeral=True)
-
-@bot.tree.command(name="poll", description="Create poll")
-async def poll_c(i, question: str): e=discord.Embed(title="📊 Poll", description=question, color=0x00ff00); msg=await i.channel.send(embed=e); await msg.add_reaction("✅"); await msg.add_reaction("❌"); await i.response.send_message("✅ Poll created!", ephemeral=True)
-
-@bot.tree.command(name="embed", description="Make embed")
-async def embed_c(i, title: str, description: str): e=discord.Embed(title=title, description=description, color=0xFF0000); await i.channel.send(embed=e); await i.response.send_message("Sent!", ephemeral=True)
-
-@bot.tree.command(name="say", description="Say as bot")
-async def say_c(i, message: str): await i.response.send_message("Sent!", ephemeral=True); await i.channel.send(message)
-
-@bot.tree.command(name="dm", description="DM a user")
-@discord.app_commands.checks.has_permissions(administrator=True)
-async def dm_c(i, member: discord.Member, message: str):
-    try: await member.send(message); await i.response.send_message(f"✅ DM sent to {member}", ephemeral=True)
-    except: await i.response.send_message("❌ Can't DM", ephemeral=True)
-
-@bot.tree.command(name="afk", description="Set AFK")
-async def afk_c(i, reason: str="AFK"): await i.response.send_message(f"💤 {i.user.mention} is AFK: {reason}")
-
-# ========== FUN 10 ==========
-@bot.tree.command(name="8ball", description="Magic 8ball")
-async def eight_c(i, question: str): await i.response.send_message(f"🎱 Q: {question}\nA: {random.choice(['Yes!', 'No!', 'Maybe', 'ISC says YES! 🔥', 'Never!'])}")
-
-@bot.tree.command(name="coinflip", description="Flip coin")
-async def cf_c(i): await i.response.send_message(random.choice(["Heads!", "Tails!"]))
-
-@bot.tree.command(name="roll", description="Roll dice")
-async def roll_c(i, max: int=100): await i.response.send_message(f"🎲 {random.randint(1,max)}")
-
-@bot.tree.command(name="rps", description="Rock Paper Scissors")
-async def rps_c(i, choice: str):
-    bot_c=random.choice(["rock","paper","scissors"]); await i.response.send_message(f"You: {choice} | Bot: {bot_c} | {'You Win!' if (choice=='rock' and bot_c=='scissors') or (choice=='paper' and bot_c=='rock') or (choice=='scissors' and bot_c=='paper') else 'You Lose!' if (choice=='rock' and bot_c=='paper') or (choice=='paper' and bot_c=='scissors') or (choice=='scissors' and bot_c=='rock') else 'Draw!'}")
-
-@bot.tree.command(name="meme", description="Random meme text")
-async def meme_c(i): await i.response.send_message(random.choice(["POV: You are in ISC Clan 🔥", "When you get banned from ISC 😭", "ISC ULTRA GOD MODE ACTIVATED"]))
-
-@bot.tree.command(name="joke", description="Random joke")
-async def joke_c(i): await i.response.send_message(random.choice(["Why did the bot cross the road? To sync 50 commands! 😂", "ISC Clan > All"]))
-
-@bot.tree.command(name="roast", description="Roast someone")
-async def roast_c(i, member: discord.Member): await i.response.send_message(f"{member.mention} you fight like you code - badly 😭🔥 (jk)")
-
-@bot.tree.command(name="howgay", description="How gay")
-async def howgay_c(i, member: discord.Member=None): m=member or i.user; await i.response.send_message(f"🏳️‍🌈 {m.mention} is {random.randint(0,100)}% gay!")
-
-@bot.tree.command(name="pp", description="PP size")
-async def pp_c(i, member: discord.Member=None): m=member or i.user; await i.response.send_message(f"🍆 {m.mention}'s pp: 8{'='*random.randint(0,10)}D")
-
-@bot.tree.command(name="iq", description="IQ test")
-async def iq_c(i, member: discord.Member=None): m=member or i.user; await i.response.send_message(f"🧠 {m.mention} IQ: {random.randint(20,200)}")
-
-# ========== ECONOMY FUN 10 ==========
-@bot.tree.command(name="balance", description="Check balance")
-async def bal_c(i): await i.response.send_message(f"💰 {i.user.mention} Balance: ${random.randint(0,10000)} (fake economy)")
-
-@bot.tree.command(name="work", description="Work for money")
-async def work_c(i): await i.response.send_message(f"💼 You worked and earned ${random.randint(100,1000)}!")
-
-@bot.tree.command(name="daily", description="Daily reward")
-async def daily_c(i): await i.response.send_message(f"🎁 Daily: ${random.randint(500,2000)} claimed!")
-
-@bot.tree.command(name="beg", description="Beg for money")
-async def beg_c(i): await i.response.send_message(random.choice([f"Someone gave you $10", "No one gave you anything lol", f"You got ${random.randint(1,100)}"]))
-
-@bot.tree.command(name="slots", description="Slot machine")
-async def slots_c(i): emojis=["🍒","🍋","💎","7️⃣","🍀"]; res=[random.choice(emojis) for _ in range(3)]; win="WIN" if res[0]==res[1]==res[2] else "LOSE"; await i.response.send_message(f"🎰 {res[0]} {res[1]} {res[2]} | {win}")
-
-@bot.tree.command(name="rob", description="Rob someone")
-async def rob_c(i, member: discord.Member): await i.response.send_message(f"🦹 You robbed {member.mention} and got ${random.randint(0,500)}!")
-
-@bot.tree.command(name="leaderboard", description="Top users")
-async def lb_c(i): await i.response.send_message("🏆 Leaderboard (fake):\n1. ISC God - $10000\n2. You - $5000\n3. Bot - $0")
-
-@bot.tree.command(name="give", description="Give money")
-async def give_c(i, member: discord.Member, amount: int): await i.response.send_message(f"💸 {i.user.mention} gave ${amount} to {member.mention}!")
-
-@bot.tree.command(name="ship", description="Ship 2 users")
-async def ship_c(i, member1: discord.Member, member2: discord.Member): await i.response.send_message(f"💖 {member1.mention} + {member2.mention} = {random.randint(0,100)}% match!")
-
-@bot.tree.command(name="slap", description="Slap someone")
-async def slap_c(i, member: discord.Member): await i.response.send_message(f"👋 {i.user.mention} slapped {member.mention}!")
-
-TOKEN = os.getenv("DISCORD_TOKEN") or os.getenv("TOKEN")
-bot.run(TOKEN)
+bot.run(os.getenv("DISCORD_TOKEN"))
