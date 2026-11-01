@@ -10,7 +10,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.presences = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 for f, d in [("levels.json", {}), ("economy.json", {}), ("wars.json", {}), ("invites.json", {}), ("warnings.json", {})]:
     if not os.path.exists(f):
@@ -252,6 +252,8 @@ async def rules(ctx): await ctx.send("1.No spam 2.Respect 3.No NSFW 4.No links 5
 @bot.hybrid_command(name="helpisc", description="Help ISC 100 commands")
 async def helpisc(ctx): await ctx.send("100 commands: kick ban timeout clear nuke warn warnings unwarn mute unmute lock unlock role removerole nick balance bal daily work rob leaderboard lb pay beg slots shop buy inventory flip createwar joinwar warlist warinfo endwar declare surrender roster rank level chat talk iscchat rivals event grind status avatar av say 8ball serverinfo si poll giveaway invites hug slap kiss roast joke meme rps dice coinflip howgay howcool pp ship sniper loadout tips clan isc owner botinfo ping uptime invite join leave play stop queue ticketpanel verifypanel rules helpisc help")
 @bot.hybrid_command(name="help", description="Help")
+async def help_cmd(ctx):
+    await ctx.send("Use /helpisc for 100 commands")
 async def help(ctx): await ctx.send("Use /helpisc")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
