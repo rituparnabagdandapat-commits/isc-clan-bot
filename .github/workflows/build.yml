@@ -1,13 +1,6 @@
-name: ISC Bot Build
-version: 1
-
-build:
-  steps:
-    - name: Install Python
-      run: python3 --version
-
-    - name: Install Requirements
-      run: pip install --no-cache-dir -r requirements.txt
-
-start:
-  command: python3 main.py
+services:
+    - type: worker
+    name: isc-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 main.py
