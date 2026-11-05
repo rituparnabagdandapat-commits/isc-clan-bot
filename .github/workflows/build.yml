@@ -1,6 +1,5 @@
-services:
-    - type: worker
-    name: isc-bot
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python3 main.py
+name: isc-bot
+build:
+  command: pip install -r requirements.txt
+run:
+  command: python3 main.py
